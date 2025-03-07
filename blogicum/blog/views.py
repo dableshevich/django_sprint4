@@ -186,7 +186,7 @@ class EditComment(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             kwargs={'post_id': self.kwargs['post_id']}
         )
         return login_url
-    
+
     def handle_no_permission(self):
         return redirect(self.get_login_url())
 
