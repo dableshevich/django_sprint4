@@ -3,7 +3,12 @@ from django.http import HttpResponseNotFound
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.contrib.auth import get_user_model
-from django.views.generic import CreateView, UpdateView, DeleteView, TemplateView
+from django.views.generic import (
+    CreateView,
+    UpdateView,
+    DeleteView,
+    TemplateView
+)
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django import forms
 from django.urls import reverse_lazy
@@ -26,11 +31,13 @@ class CreatePost(LoginRequiredMixin, CreateView):
         form.instance.author = self.request.user
 
         return super().form_valid(form)
-    
+
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        form.fields['pub_date'].widget = forms.DateTimeInput(attrs={'type': 'datetime-local'})
-        
+        form.fields['pub_date'].widget = forms.DateTimeInput(
+            attrs={'type': 'datetime-local'}
+        )
+
         return form
 
     def get_success_url(self, **kwargs):
@@ -50,11 +57,11 @@ class EditPost(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             kwargs={'post_id': self.kwargs['post_id']}
         )
         return login_url
-    
+
     def test_func(self):
         post = self.get_object()
         return self.request.user == post.author
-    
+
     def handle_no_permission(self):
         return redirect(self.get_login_url())
 
@@ -68,15 +75,17 @@ class EditPost(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        form.fields['pub_date'].widget = forms.DateTimeInput(attrs={'type': 'datetime-local'})
+        form.fields['pub_date'].widget = forms.DateTimeInput(
+            attrs={'type': 'datetime-local'}
+        )
         return form
-    
+
     def get_object(self, **kwargs):
         post_id = self.kwargs['post_id']
         post = get_object_or_404(Post, pk=post_id)
 
         return post
-    
+
     def get_success_url(self, **kwargs):
         return reverse_lazy(
             'blog:post_detail',
@@ -95,11 +104,11 @@ class DeletePost(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
             kwargs={'post_id': self.kwargs['post_id']}
         )
         return login_url
-    
+
     def test_func(self):
         post = self.get_object()
         return self.request.user == post.author
-    
+
     def handle_no_permission(self):
         return redirect(self.get_login_url())
 
@@ -108,7 +117,7 @@ class DeletePost(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         post = get_object_or_404(Post, pk=post_id)
 
         return post
-    
+
     def get_success_url(self, **kwargs):
         username = self.request.user.username
 
@@ -123,7 +132,7 @@ class CreateComment(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         username = self.request.user
         text = form.cleaned_data['text']
-        
+
         form.instance.author = username
         form.instance.post = get_object_or_404(Post, pk=self.kwargs['post_id'])
 
@@ -141,7 +150,7 @@ class CreateComment(LoginRequiredMixin, CreateView):
         )
 
         return super().form_valid(form)
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         post = get_object_or_404(Post, pk=self.kwargs['post_id'])
@@ -201,17 +210,17 @@ class EditComment(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 class DeleteComment(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = Comment
     template_name = 'blog/comment.html'
-    
+
     def get_login_url(self):
         login_url = reverse_lazy(
             'blog:post_detail',
             kwargs={'post_id': self.kwargs['post_id']}
         )
         return login_url
-    
+
     def handle_no_permission(self):
         return redirect(self.get_login_url())
-    
+
     def test_func(self):
         comment = self.get_object()
         return self.request.user == comment.author
@@ -221,14 +230,13 @@ class DeleteComment(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         comment = get_object_or_404(Comment, pk=comment_id)
 
         return comment
-    
+
     def get_context_data(self, **kwargs):
         context = {
             'comment': super().get_context_data(**kwargs)['comment']
         }
         return context
 
-        
     def get_success_url(self, **kwargs):
         return reverse_lazy(
             'blog:post_detail',
@@ -244,7 +252,7 @@ class EditProfile(LoginRequiredMixin, UpdateView):
 
     def get_object(self, queryset=None):
         return self.request.user
-    
+
     def get_success_url(self, **kwargs):
         username = self.request.user.username
 
@@ -291,7 +299,7 @@ def post_detail(request, post_id):
         'comments': comments,
         'form': form
     }
-    
+
     return render(request, template, context)
 
 
