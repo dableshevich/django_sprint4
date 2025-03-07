@@ -18,7 +18,6 @@ from django.urls import path, include, reverse_lazy
 from django.contrib.auth.forms import UserCreationForm
 from django.views.generic.edit import CreateView
 from django.conf.urls.static import static
-from debug_toolbar.toolbar import debug_toolbar_urls
 
 from . import settings
 
@@ -43,6 +42,3 @@ urlpatterns = [
         name='registration'
     )
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-if settings.DEBUG:
-    urlpatterns += debug_toolbar_urls()
