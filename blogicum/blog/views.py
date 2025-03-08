@@ -48,14 +48,30 @@ class RedirectToPostMixin:
         )
 
 
-class RedirectToProfile:
+class RedirectToProfileMixin:
     def get_success_url(self, **kwargs):
         username = self.request.user.username
 
         return reverse_lazy('blog:profile', kwargs={'username': username})
 
 
-class CheckingUserRights:
+class GetPostByPostIdMixin:
+    def get_object(self, **kwargs):
+        post_id = self.kwargs['post_id']
+        post = get_object_or_404(Post, pk=post_id)
+
+        return post
+
+
+class GetCommentByCommentIdMixin:
+    def get_object(self, **kwargs):
+        comment_id = self.kwargs['comment_id']
+        comment = get_object_or_404(Comment, pk=comment_id)
+
+        return comment
+
+
+class CheckingUserRightsMixin:
     def test_func(self):
         object = self.get_object()
         return self.request.user == object.author
@@ -72,31 +88,22 @@ class CheckingUserRights:
 
 
 class CreatePost(LoginRequiredMixin, PostFormMixin,
-                 RedirectToProfile, CreateView):
+                 RedirectToProfileMixin, CreateView):
     pass
 
 
-class EditPost(LoginRequiredMixin, CheckingUserRights, UserPassesTestMixin,
-               PostFormMixin, RedirectToPostMixin, UpdateView):
-
-    def get_object(self):
-        post_id = self.kwargs['post_id']
-        post = get_object_or_404(Post, pk=post_id)
-
-        return post
+class EditPost(LoginRequiredMixin, CheckingUserRightsMixin,
+               UserPassesTestMixin, PostFormMixin, RedirectToPostMixin,
+               GetPostByPostIdMixin, UpdateView):
+    pass
 
 
-class DeletePost(LoginRequiredMixin, CheckingUserRights, UserPassesTestMixin,
-                 RedirectToProfile, DeleteView):
+class DeletePost(LoginRequiredMixin, CheckingUserRightsMixin,
+                 UserPassesTestMixin, RedirectToProfileMixin,
+                 GetPostByPostIdMixin, DeleteView):
     model = Post
     template_name = 'blog/create.html'
     success_url = reverse_lazy('blog:index')
-
-    def get_object(self, **kwargs):
-        post_id = self.kwargs['post_id']
-        post = get_object_or_404(Post, pk=post_id)
-
-        return post
 
 
 class CreateComment(LoginRequiredMixin, RedirectToPostMixin, CreateView):
@@ -144,29 +151,19 @@ class CreateComment(LoginRequiredMixin, RedirectToPostMixin, CreateView):
         return context
 
 
-class EditComment(LoginRequiredMixin, RedirectToPostMixin, CheckingUserRights,
-                  UserPassesTestMixin, UpdateView):
+class EditComment(LoginRequiredMixin, RedirectToPostMixin,
+                  CheckingUserRightsMixin, UserPassesTestMixin,
+                  GetCommentByCommentIdMixin, UpdateView):
     model = Comment
     fields = ['text']
     template_name = 'blog/comment.html'
 
-    def get_object(self, **kwargs):
-        comment_id = self.kwargs['comment_id']
-        comment = get_object_or_404(Comment, pk=comment_id)
-
-        return comment
-
 
 class DeleteComment(LoginRequiredMixin, RedirectToPostMixin,
-                    CheckingUserRights, UserPassesTestMixin, DeleteView):
+                    CheckingUserRightsMixin, UserPassesTestMixin,
+                    GetCommentByCommentIdMixin, DeleteView):
     model = Comment
     template_name = 'blog/comment.html'
-
-    def get_object(self, **kwargs):
-        comment_id = self.kwargs['comment_id']
-        comment = get_object_or_404(Comment, pk=comment_id)
-
-        return comment
 
     def get_context_data(self, **kwargs):
         context = {
@@ -175,7 +172,7 @@ class DeleteComment(LoginRequiredMixin, RedirectToPostMixin,
         return context
 
 
-class EditProfile(LoginRequiredMixin, RedirectToProfile, UpdateView):
+class EditProfile(LoginRequiredMixin, RedirectToProfileMixin, UpdateView):
     model = User
 
     fields = ['username', 'first_name', 'last_name', 'email']
@@ -252,14 +249,9 @@ class CategoryProfile(ListView):
         return context
 
 
-class PostDetail(DetailView):
+class PostDetail(GetPostByPostIdMixin, DetailView):
     model = Post
     template_name = 'blog/detail.html'
-
-    def get_object(self):
-        post_id = self.kwargs['post_id']
-
-        return get_object_or_404(Post, pk=post_id)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -268,8 +260,8 @@ class PostDetail(DetailView):
 
         if (
             post.pub_date > timezone.now()
-            or post.is_published is False
-            or post.category.is_published is False
+            or not post.is_published
+            or not post.category.is_published
         ) and self.request.user != post.author:
             raise Http404('Page not found')
 
