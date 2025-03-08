@@ -55,7 +55,7 @@ class RedirectToProfile:
         return reverse_lazy('blog:profile', kwargs={'username': username})
 
 
-class CheckingUserRights(UserPassesTestMixin):
+class CheckingUserRights:
     def test_func(self):
         object = self.get_object()
         return self.request.user == object.author
@@ -76,7 +76,7 @@ class CreatePost(LoginRequiredMixin, PostFormMixin,
     pass
 
 
-class EditPost(LoginRequiredMixin, CheckingUserRights,
+class EditPost(LoginRequiredMixin, CheckingUserRights, UserPassesTestMixin,
                PostFormMixin, RedirectToPostMixin, UpdateView):
 
     def get_object(self):
@@ -86,7 +86,7 @@ class EditPost(LoginRequiredMixin, CheckingUserRights,
         return post
 
 
-class DeletePost(LoginRequiredMixin, CheckingUserRights,
+class DeletePost(LoginRequiredMixin, CheckingUserRights, UserPassesTestMixin,
                  RedirectToProfile, DeleteView):
     model = Post
     template_name = 'blog/create.html'
@@ -145,7 +145,7 @@ class CreateComment(LoginRequiredMixin, RedirectToPostMixin, CreateView):
 
 
 class EditComment(LoginRequiredMixin, RedirectToPostMixin, CheckingUserRights,
-                  UpdateView):
+                  UserPassesTestMixin, UpdateView):
     model = Comment
     fields = ['text']
     template_name = 'blog/comment.html'
@@ -158,7 +158,7 @@ class EditComment(LoginRequiredMixin, RedirectToPostMixin, CheckingUserRights,
 
 
 class DeleteComment(LoginRequiredMixin, RedirectToPostMixin,
-                    CheckingUserRights, DeleteView):
+                    CheckingUserRights, UserPassesTestMixin, DeleteView):
     model = Comment
     template_name = 'blog/comment.html'
 
