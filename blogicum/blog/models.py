@@ -62,7 +62,6 @@ class Post(BaseModel):
     )
     pub_date = models.DateTimeField(
         verbose_name='Дата и время публикации',
-        default=timezone.now,
         help_text=(
             'Если установить дату и время '
             'в будущем — можно делать отложенные публикации.'
@@ -120,6 +119,9 @@ class Comment(models.Model):
         auto_now_add=True,
         verbose_name='Добавлено'
     )
+
+    def __str__(self):
+        return f'{self.author.username}: {self.text}'
 
     class Meta:
         verbose_name = 'комментарий'

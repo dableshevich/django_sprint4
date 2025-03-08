@@ -8,12 +8,12 @@ urlpatterns = [
     path('posts/', views.IndexPosts.as_view(), name='index'),
     path(
         'posts/<int:post_id>/',
-        views.post_detail,
+        views.PostDetail.as_view(),
         name='post_detail'
     ),
     path(
         'category/<slug:category_slug>/',
-        views.category_posts,
+        views.CategoryProfile.as_view(),
         name='category_posts'
     ),
     path('posts/create/', views.CreatePost.as_view(), name='create_post'),
@@ -47,5 +47,9 @@ urlpatterns = [
         views.EditProfile.as_view(),
         name='edit_profile'
     ),
-    path('profile/<str:username>/', views.user_profile, name='profile'),
+    path(
+        'profile/<str:username>/',
+        views.UserProfile.as_view(),
+        name='profile'
+    ),
 ]
