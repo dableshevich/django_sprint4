@@ -106,6 +106,15 @@ class DeletePost(LoginRequiredMixin, CheckingUserRightsMixin,
     template_name = 'blog/create.html'
     success_url = reverse_lazy('blog:index')
 
+    def get_context_data(self, **kwargs):
+        post = super().get_context_data(**kwargs)['post']
+
+        form = PostForm(instance=post or None)
+        context = {
+            'form': form
+        }
+        return context
+
 
 class CreateComment(LoginRequiredMixin, RedirectToPostMixin, CreateView):
     model = Comment
