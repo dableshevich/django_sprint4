@@ -88,10 +88,6 @@ class Post(BaseModel):
         verbose_name='Категория'
     )
 
-    @property
-    def comment_count(self):
-        return self.comments.count()
-
     def __str__(self):
         return self.title
 

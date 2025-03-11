@@ -14,18 +14,22 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django import forms
 from django.urls import reverse_lazy
 from django.core.mail import send_mail
-from django.db.models import Q
+from django.db.models import Q, Count
 
 from .models import Post, Category, Comment
-from .forms import CommentForm
+from .forms import CommentForm, PostForm
 
 
 User = get_user_model()
 
 
+class PaginateMixin:
+    paginate_by = 10
+
+
 class PostFormMixin:
     model = Post
-    fields = ['title', 'text', 'location', 'category', 'pub_date', 'image']
+    form_class = PostForm
     template_name = 'blog/create.html'
 
     def form_valid(self, form):
@@ -51,7 +55,6 @@ class RedirectToPostMixin:
 class RedirectToProfileMixin:
     def get_success_url(self, **kwargs):
         username = self.request.user.username
-
         return reverse_lazy('blog:profile', kwargs={'username': username})
 
 
@@ -59,7 +62,6 @@ class GetPostByPostIdMixin:
     def get_object(self, **kwargs):
         post_id = self.kwargs['post_id']
         post = get_object_or_404(Post, pk=post_id)
-
         return post
 
 
@@ -67,7 +69,6 @@ class GetCommentByCommentIdMixin:
     def get_object(self, **kwargs):
         comment_id = self.kwargs['comment_id']
         comment = get_object_or_404(Comment, pk=comment_id)
-
         return comment
 
 
@@ -78,7 +79,7 @@ class CheckingUserRightsMixin:
 
     def handle_no_permission(self):
         return redirect(self.get_login_url())
-    
+
     def get_login_url(self):
         login_url = reverse_lazy(
             'blog:post_detail',
@@ -182,10 +183,9 @@ class EditProfile(LoginRequiredMixin, RedirectToProfileMixin, UpdateView):
         return self.request.user
 
 
-class IndexPosts(ListView):
+class IndexPosts(PaginateMixin, ListView):
     model = Post
     template_name = 'blog/index.html'
-    paginate_by = 10
 
     def get_queryset(self):
         queryset = super().get_queryset().select_related('category')
@@ -193,20 +193,25 @@ class IndexPosts(ListView):
             pub_date__lte=timezone.now(),
             is_published__exact=True,
             category__is_published=True
-        )
+        ).annotate(
+            comment_count=Count('comments')
+        ).order_by('-pub_date')
         return queryset
 
 
-class UserProfile(ListView):
+class UserProfile(PaginateMixin, ListView):
     model = Post
     template_name = 'blog/profile.html'
-    paginate_by = 10
 
     def get_queryset(self):
         username = self.kwargs['username']
         self.profile = get_object_or_404(User, username=username)
 
-        queryset = super().get_queryset().filter(author=self.profile)
+        queryset = super().get_queryset().filter(
+            author=self.profile
+        ).annotate(
+            comment_count=Count('comments')
+        ).order_by('-pub_date')
 
         if self.request.user != self.profile:
             queryset = queryset.filter(
@@ -222,19 +227,22 @@ class UserProfile(ListView):
         return context
 
 
-class CategoryProfile(ListView):
+class CategoryProfile(PaginateMixin, ListView):
     model = Post
     template_name = 'blog/category.html'
-    paginate_by = 10
 
     def get_queryset(self):
         category_slug = self.kwargs['category_slug']
         self.category = get_object_or_404(Category, slug=category_slug)
 
-        if self.category.is_published is False:
+        if not self.category.is_published:
             raise Http404('Page not found')
 
-        queryset = super().get_queryset().filter(category=self.category)
+        queryset = super().get_queryset().filter(
+            category=self.category
+        ).annotate(
+            comment_count=Count('comments')
+        ).order_by('-pub_date')
 
         queryset = queryset.exclude(
             Q(is_published=False) | Q(pub_date__gt=timezone.now())
