@@ -109,7 +109,7 @@ class DeletePost(LoginRequiredMixin, CheckingUserRightsMixin,
 
 class CreateComment(LoginRequiredMixin, RedirectToPostMixin, CreateView):
     model = Comment
-    fields = ['text']
+    form_class = CommentForm
     template_name = 'blog/detail.html'
 
     def form_valid(self, form):
@@ -156,7 +156,7 @@ class EditComment(LoginRequiredMixin, RedirectToPostMixin,
                   CheckingUserRightsMixin, UserPassesTestMixin,
                   GetCommentByCommentIdMixin, UpdateView):
     model = Comment
-    fields = ['text']
+    form_class = CommentForm
     template_name = 'blog/comment.html'
 
 
